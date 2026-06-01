@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Salary Prediction — Project 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181b22;
+    --border: #232730;
+    --accent: #00e5a0;
+    --accent2: #7c6fff;
+    --accent3: #ff6b6b;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --display: 'Syne', sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+
+  body::before{
+    content:'';position:fixed;inset:0;
+    background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+    background-size:40px 40px;opacity:.35;pointer-events:none;z-index:0;
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 24px 80px;}
+
+  header{text-align:center;margin-bottom:56px;}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);border:1px solid var(--accent);padding:4px 12px;border-radius:2px;margin-bottom:16px;}
+  h1{font-family:var(--display);font-size:clamp(2rem,6vw,3.8rem);font-weight:800;line-height:1.05;
+    background:linear-gradient(135deg,#fff 30%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .sub{margin-top:12px;color:var(--muted);font-size:.95rem;font-weight:300;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  @media(max-width:700px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;}
+  .card-title{font-family:var(--display);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:16px;}
+
+  .stat-val{font-family:var(--mono);font-size:2rem;font-weight:500;}
+  .stat-label{font-size:.78rem;color:var(--muted);margin-top:4px;}
+  .green{color:var(--accent);}
+  .purple{color:var(--accent2);}
+  .red{color:var(--accent3);}
+
+  .tbl-wrap{overflow-x:auto;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem;}
+  th{background:var(--surface2);color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);font-weight:500;letter-spacing:.06em;}
+  td{padding:7px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--surface2);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:.7rem;}
+  .badge-green{background:rgba(0,229,160,.12);color:var(--accent);}
+  .badge-purple{background:rgba(124,111,255,.12);color:var(--accent2);}
+
+  .chart-box{position:relative;height:260px;}
+
+  .sec{font-family:var(--display);font-size:1.25rem;font-weight:700;margin:32px 0 16px;
+    padding-left:14px;border-left:3px solid var(--accent);}
+
+  .predictor{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px;}
+  .inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  @media(max-width:600px){.inputs{grid-template-columns:1fr;}}
+  label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:6px;font-family:var(--mono);}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  .rval{font-family:var(--mono);font-size:.85rem;color:var(--accent);margin-top:4px;}
+  .predict-btn{background:var(--accent);color:#000;border:none;padding:12px 28px;border-radius:4px;
+    font-family:var(--display);font-weight:700;font-size:.9rem;cursor:pointer;letter-spacing:.04em;transition:opacity .2s;}
+  .predict-btn:hover{opacity:.85;}
+  .result-box{margin-top:20px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:18px;display:none;}
+  .result-box.show{display:block;}
+  .res-val{font-family:var(--mono);font-size:1.8rem;color:var(--accent);font-weight:500;}
+  .res-note{font-size:.8rem;color:var(--muted);margin-top:6px;}
+
+  .compare-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  @media(max-width:600px){.compare-row{grid-template-columns:1fr;}}
+  .model-card{border:1px solid var(--border);border-radius:8px;padding:20px;background:var(--surface);}
+  .model-card.best{border-color:var(--accent);box-shadow:0 0 24px rgba(0,229,160,.08);}
+  .model-name{font-family:var(--display);font-weight:700;font-size:1rem;margin-bottom:12px;}
+  .metric-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.8rem;
+    padding:5px 0;border-bottom:1px solid var(--border);}
+  .metric-row:last-child{border-bottom:none;}
+  .metric-k{color:var(--muted);}
+
+  .coef-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .coef-row:last-child{border-bottom:none;}
+  .coef-name{font-family:var(--mono);font-size:.8rem;min-width:120px;color:var(--muted);}
+  .coef-bar-wrap{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+  .coef-bar{height:100%;border-radius:4px;transition:width .8s ease;}
+  .coef-val{font-family:var(--mono);font-size:.8rem;min-width:70px;text-align:right;}
+
+  footer{text-align:center;color:var(--muted);font-size:.75rem;margin-top:60px;font-family:var(--mono);}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .card,.model-card,.predictor{animation:fadeUp .5s ease both;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="tag">Project — 2 · SyntecxHub</div>
+    <h1>Salary Prediction</h1>
+    <p class="sub">Multiple Linear Regression · Train/Test Split · RMSE & R² Evaluation · Model Comparison</p>
+  </header>
+
+  <p class="sec">Dataset Overview</p>
+  <div class="grid3" id="statsRow"></div>
+
+  <p class="sec">Sample Dataset (first 10 rows)</p>
+  <div class="tbl-wrap card" style="padding:0;">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>#</th><th>Experience (yrs)</th><th>Test Score</th><th>Education</th>
+          <th>Edu Encoded</th><th>Salary ($)</th>
+        </tr>
+      </thead>
+      <tbody id="dataBody"></tbody>
+    </table>
+  </div>
+
+  <p class="sec">Feature Distributions & Correlations</p>
+  <div class="grid2">
+    <div class="card"><div class="card-title">Salary vs Experience</div><div class="chart-box"><canvas id="c1"></canvas></div></div>
+    <div class="card"><div class="card-title">Salary vs Test Score</div><div class="chart-box"><canvas id="c2"></canvas></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="card-title">Salary Distribution</div><div class="chart-box"><canvas id="c3"></canvas></div></div>
+    <div class="card"><div class="card-title">Education Category Counts</div><div class="chart-box"><canvas id="c4"></canvas></div></div>
+  </div>
+
+  <p class="sec">Train / Test Split (80% / 20%)</p>
+  <div class="grid3" id="splitRow"></div>
+
+  <p class="sec">Model Comparison</p>
+  <div class="compare-row" id="modelCards"></div>
+
+  <p class="sec">Best Model — Coefficients</p>
+  <div class="card" id="coefCard"></div>
+
+  <p class="sec">Actual vs Predicted (Best Model · Test Set)</p>
+  <div class="card"><div class="chart-box" style="height:300px;"><canvas id="c5"></canvas></div></div>
+
+  <p class="sec">Residuals Plot</p>
+  <div class="card"><div class="chart-box" style="height:260px;"><canvas id="c6"></canvas></div></div>
+
+  <p class="sec">Live Salary Predictor</p>
+  <div class="predictor" id="predictorSection">
+    <div class="inputs">
+      <div>
+        <label>Experience (years): <span class="rval" id="expVal">5</span></label>
+        <input type="range" id="expSlider" min="0" max="20" step="0.5" value="5"/>
+      </div>
+      <div>
+        <label>Test Score (0–100): <span class="rval" id="scoreVal">70</span></label>
+        <input type="range" id="scoreSlider" min="0" max="100" step="1" value="70"/>
+      </div>
+      <div>
+        <label>Education Level:</label>
+        <select id="eduSelect" style="width:100%;background:var(--surface2);border:1px solid var(--border);
+          color:var(--text);padding:8px 10px;border-radius:4px;font-family:var(--mono);font-size:.85rem;">
+          <option value="0">High School (0)</option>
+          <option value="1">Bachelor's (1)</option>
+          <option value="2" selected>Master's (2)</option>
+          <option value="3">PhD (3)</option>
+        </select>
+      </div>
+    </div>
+    <button class="predict-btn" onclick="livePredict()">Predict Salary</button>
+    <div class="result-box" id="resultBox">
+      <div style="font-size:.75rem;color:var(--muted);font-family:var(--mono);margin-bottom:6px;">PREDICTED SALARY</div>
+      <div class="res-val" id="resVal"></div>
+      <div class="res-note" id="resNote"></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Salary Prediction · Multiple Linear Regression · Implemented in-browser with JavaScript</p>
+    <p style="margin-top:6px;">Model trained on synthetic dataset · For educational purposes</p>
+  </footer>
+</div>
+
+<script>
+// ─── 1. GENERATE SYNTHETIC DATASET ────────────────────────────────────────────
+function seededRand(seed){
+  let s=seed;
+  return ()=>{s=(s*16807+0)%2147483647;return(s-1)/2147483646;};
+}
+const rand=seededRand(42);
+const gauss=()=>{
+  let u=0,v=0;
+  while(!u)u=rand();while(!v)v=rand();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+};
+
+const EDU_LABELS=['High School','Bachelor\'s','Master\'s','PhD'];
+const N=120;
+const dataset=[];
+for(let i=0;i<N;i++){
+  const exp=Math.round((rand()*20)*10)/10;
+  const score=Math.min(100,Math.max(30,Math.round(50+rand()*50+gauss()*5)));
+  const edu=Math.floor(rand()*4);
+  const salary=Math.round(30000 + exp*3200 + score*280 + edu*8000 + gauss()*4000);
+  dataset.push({exp,score,edu,eduLabel:EDU_LABELS[edu],salary});
+}
+
+// ─── 2. TRAIN/TEST SPLIT ───────────────────────────────────────────────────────
+const splitIdx=Math.floor(N*0.8);
+const trainSet=dataset.slice(0,splitIdx);
+const testSet=dataset.slice(splitIdx);
+
+// ─── 3. LINEAR REGRESSION (OLS) ───────────────────────────────────────────────
+function matMul(A,B){
+  const rows=A.length,cols=B[0].length,inner=B.length;
+  return Array.from({length:rows},(_,r)=>Array.from({length:cols},(_,c)=>
+    A[r].reduce((s,_,k)=>s+A[r][k]*B[k][c],0)));
+}
+function transpose(M){return M[0].map((_,c)=>M.map(r=>r[c]));}
+function invert(M){
+  const n=M.length;
+  const A=M.map(r=>[...r]);
+  const I=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0));
+  for(let col=0;col<n;col++){
+    let maxR=col;
+    for(let r=col+1;r<n;r++)if(Math.abs(A[r][col])>Math.abs(A[maxR][col]))maxR=r;
+    [A[col],A[maxR]]=[A[maxR],A[col]];[I[col],I[maxR]]=[I[maxR],I[col]];
+    const piv=A[col][col];
+    A[col]=A[col].map(v=>v/piv);I[col]=I[col].map(v=>v/piv);
+    for(let r=0;r<n;r++){if(r===col)continue;const f=A[r][col];
+      A[r]=A[r].map((v,j)=>v-f*A[col][j]);I[r]=I[r].map((v,j)=>v-f*I[col][j]);}
+  }
+  return I;
+}
+function fitOLS(X,y){
+  const Xt=transpose(X);
+  const XtX=matMul(Xt,X);
+  const XtXinv=invert(XtX);
+  const Xty=matMul(Xt,y.map(v=>[v]));
+  return matMul(XtXinv,Xty).map(r=>r[0]);
+}
+function buildX(rows,features){return rows.map(r=>[1,...features.map(f=>r[f])]);}
+function predict(X,coefs){return X.map(row=>row.reduce((s,v,i)=>s+v*coefs[i],0));}
+function rmse(actual,pred){
+  return Math.sqrt(actual.reduce((s,v,i)=>s+Math.pow(v-pred[i],2),0)/actual.length);
+}
+function r2(actual,pred){
+  const mean=actual.reduce((s,v)=>s+v,0)/actual.length;
+  const ss_tot=actual.reduce((s,v)=>s+Math.pow(v-mean,2),0);
+  const ss_res=actual.reduce((s,v,i)=>s+Math.pow(v-pred[i],2),0);
+  return 1-ss_res/ss_tot;
+}
+
+// Model A: single feature
+const XA_train=buildX(trainSet,['exp']);
+const yTrain=trainSet.map(r=>r.salary);
+const yTest=testSet.map(r=>r.salary);
+const coefsA=fitOLS(XA_train,yTrain);
+const predA_test=predict(buildX(testSet,['exp']),coefsA);
+const rmseA=rmse(yTest,predA_test);
+const r2A=r2(yTest,predA_test);
+
+// Model B: multiple features (BEST)
+const XB_train=buildX(trainSet,['exp','score','edu']);
+const coefsB=fitOLS(XB_train,yTrain);
+const predB_test=predict(buildX(testSet,['exp','score','edu']),coefsB);
+const rmseB=rmse(yTest,predB_test);
+const r2B=r2(yTest,predB_test);
+
+const rmseA_tr=rmse(yTrain,predict(XA_train,coefsA));
+const r2A_tr=r2(yTrain,predict(XA_train,coefsA));
+const rmseB_tr=rmse(yTrain,predict(buildX(trainSet,['exp','score','edu']),coefsB));
+const r2B_tr=r2(yTrain,predict(buildX(trainSet,['exp','score','edu']),coefsB));
+
+const bestPreds=predB_test;
+const bestCoefs=coefsB;
+
+// ─── 4. RENDER STATS ──────────────────────────────────────────────────────────
+const fmt=v=>v.toLocaleString('en-US',{maximumFractionDigits:0});
+const fmtK=v=>'$'+Math.round(v/1000)+'K';
+
+document.getElementById('statsRow').innerHTML=`
+  <div class="card"><div class="card-title">Total Samples</div>
+    <div class="stat-val green">${N}</div>
+    <div class="stat-label">Synthetic dataset</div></div>
+  <div class="card"><div class="card-title">Features</div>
+    <div class="stat-val purple">3</div>
+    <div class="stat-label">exp · test_score · edu</div></div>
+  <div class="card"><div class="card-title">Avg Salary</div>
+    <div class="stat-val" style="color:var(--accent3);">${fmtK(dataset.reduce((s,r)=>s+r.salary,0)/N)}</div>
+    <div class="stat-label">Range: ${fmtK(Math.min(...dataset.map(r=>r.salary)))} – ${fmtK(Math.max(...dataset.map(r=>r.salary)))}</div></div>
+`;
+
+// ─── 5. DATA TABLE ────────────────────────────────────────────────────────────
+const tbody=document.getElementById('dataBody');
+dataset.slice(0,10).forEach((r,i)=>{
+  const badge=`<span class="badge ${r.edu>=2?'badge-green':'badge-purple'}">${r.eduLabel}</span>`;
+  tbody.innerHTML+=`<tr>
+    <td>${i+1}</td><td>${r.exp}</td><td>${r.score}</td>
+    <td>${badge}</td><td>${r.edu}</td><td>$${fmt(r.salary)}</td>
+  </tr>`;
+});
+
+// ─── 6. SPLIT STATS ───────────────────────────────────────────────────────────
+document.getElementById('splitRow').innerHTML=`
+  <div class="card"><div class="card-title">Training Set</div>
+    <div class="stat-val green">${trainSet.length}</div>
+    <div class="stat-label">80% of dataset</div></div>
+  <div class="card"><div class="card-title">Test Set</div>
+    <div class="stat-val purple">${testSet.length}</div>
+    <div class="stat-label">20% of dataset</div></div>
+  <div class="card"><div class="card-title">Split Ratio</div>
+    <div class="stat-val" style="color:var(--accent3);">80/20</div>
+    <div class="stat-label">Standard train/test split</div></div>
+`;
+
+// ─── 7. MODEL CARDS ───────────────────────────────────────────────────────────
+document.getElementById('modelCards').innerHTML=`
+  <div class="model-card">
+    <div class="model-name">Model A — Single Feature <span class="badge badge-purple" style="font-size:.7rem;margin-left:6px;">experience only</span></div>
+    <div class="metric-row"><span class="metric-k">Train RMSE</span><span>$${fmt(rmseA_tr)}</span></div>
+    <div class="metric-row"><span class="metric-k">Test RMSE</span><span style="color:var(--accent3);">$${fmt(rmseA)}</span></div>
+    <div class="metric-row"><span class="metric-k">Train R²</span><span>${r2A_tr.toFixed(4)}</span></div>
+    <div class="metric-row"><span class="metric-k">Test R²</span><span style="color:var(--accent3);">${r2A.toFixed(4)}</span></div>
+    <div class="metric-row"><span class="metric-k">Formula</span><span style="font-family:var(--mono);font-size:.75rem;">salary = β₀ + β₁·exp</span></div>
+  </div>
+  <div class="model-card best">
+    <div class="model-name">Model B — Multiple Features <span class="badge badge-green" style="font-size:.7rem;margin-left:6px;">✓ Best Model</span></div>
+    <div class="metric-row"><span class="metric-k">Train RMSE</span><span>$${fmt(rmseB_tr)}</span></div>
+    <div class="metric-row"><span class="metric-k">Test RMSE</span><span style="color:var(--accent);">$${fmt(rmseB)}</span></div>
+    <div class="metric-row"><span class="metric-k">Train R²</span><span>${r2B_tr.toFixed(4)}</span></div>
+    <div class="metric-row"><span class="metric-k">Test R²</span><span style="color:var(--accent);">${r2B.toFixed(4)}</span></div>
+    <div class="metric-row"><span class="metric-k">Formula</span><span style="font-family:var(--mono);font-size:.75rem;">salary = β₀ + β₁·exp + β₂·score + β₃·edu</span></div>
+  </div>
+`;
+
+// ─── 8. COEFFICIENTS ──────────────────────────────────────────────────────────
+const coefNames=['Intercept (β₀)','Experience (β₁)','Test Score (β₂)','Education (β₃)'];
+const maxCoef=Math.max(...bestCoefs.map(Math.abs));
+const coefColors=['var(--muted)','var(--accent)','var(--accent2)','var(--accent3)'];
+let coefHtml='<div class="card-title">Multiple Regression Coefficients (Best Model)</div>';
+bestCoefs.forEach((c,i)=>{
+  const pct=Math.abs(c)/maxCoef*100;
+  coefHtml+=`<div class="coef-row">
+    <span class="coef-name">${coefNames[i]}</span>
+    <div class="coef-bar-wrap"><div class="coef-bar" style="width:${pct}%;background:${coefColors[i]};"></div></div>
+    <span class="coef-val" style="color:${coefColors[i]};">${c.toFixed(2)}</span>
+  </div>`;
+});
+document.getElementById('coefCard').innerHTML=coefHtml;
+
+// ─── 9. CHARTS ────────────────────────────────────────────────────────────────
+const CS={responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+fmt(ctx.raw.y||ctx.raw)}}},
+  scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#6b7280'}},
+          y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#6b7280',callback:v=>'$'+Math.round(v/1000)+'K'}}}};
+
+new Chart(document.getElementById('c1'),{type:'scatter',
+  data:{datasets:[{data:dataset.map(r=>({x:r.exp,y:r.salary})),
+    backgroundColor:'rgba(0,229,160,.5)',pointRadius:4}]},
+  options:{...CS,scales:{x:{...CS.scales.x,title:{display:true,text:'Experience (yrs)',color:'#6b7280'}},y:{...CS.scales.y}}}});
+
+new Chart(document.getElementById('c2'),{type:'scatter',
+  data:{datasets:[{data:dataset.map(r=>({x:r.score,y:r.salary})),
+    backgroundColor:'rgba(124,111,255,.5)',pointRadius:4}]},
+  options:{...CS,scales:{x:{...CS.scales.x,title:{display:true,text:'Test Score',color:'#6b7280'}},y:{...CS.scales.y}}}});
+
+const buckets=Array(12).fill(0);
+const minS=Math.min(...dataset.map(r=>r.salary)),maxS=Math.max(...dataset.map(r=>r.salary));
+const bw=(maxS-minS)/12;
+dataset.forEach(r=>buckets[Math.min(11,Math.floor((r.salary-minS)/bw))]++);
+const bLabels=buckets.map((_,i)=>fmtK(minS+i*bw));
+new Chart(document.getElementById('c3'),{type:'bar',
+  data:{labels:bLabels,datasets:[{data:buckets,backgroundColor:'rgba(255,107,107,.6)',borderWidth:0}]},
+  options:{...CS,scales:{x:{...CS.scales.x,ticks:{color:'#6b7280',maxRotation:45}},
+    y:{...CS.scales.y,ticks:{color:'#6b7280',callback:v=>v}}}}});
+
+const eduCounts=[0,0,0,0];dataset.forEach(r=>eduCounts[r.edu]++);
+new Chart(document.getElementById('c4'),{type:'bar',
+  data:{labels:EDU_LABELS,datasets:[{data:eduCounts,
+    backgroundColor:['rgba(0,229,160,.6)','rgba(124,111,255,.6)','rgba(255,107,107,.6)','rgba(255,200,100,.6)'],borderWidth:0}]},
+  options:{...CS,scales:{x:{...CS.scales.x},y:{...CS.scales.y,ticks:{color:'#6b7280',callback:v=>v}}}}});
+
+const sortedIdx=[...Array(testSet.length).keys()].sort((a,b)=>yTest[a]-yTest[b]);
+new Chart(document.getElementById('c5'),{type:'line',
+  data:{labels:sortedIdx.map(i=>i+1),datasets:[
+    {label:'Actual',data:sortedIdx.map(i=>yTest[i]),borderColor:'var(--accent)',borderWidth:2,pointRadius:3,fill:false,tension:.3},
+    {label:'Predicted',data:sortedIdx.map(i=>bestPreds[i]),borderColor:'var(--accent2)',borderWidth:2,pointRadius:2,
+      borderDash:[5,3],fill:false,tension:.3}
+  ]},
+  options:{...CS,plugins:{legend:{display:true,labels:{color:'#e8eaf0',font:{family:'IBM Plex Mono',size:11}}},
+    tooltip:{callbacks:{label:ctx=>'$'+fmt(ctx.raw)}}},
+    scales:{x:{...CS.scales.x,title:{display:true,text:'Test sample (sorted by actual)',color:'#6b7280'}},y:{...CS.scales.y}}}});
+
+const residuals=yTest.map((v,i)=>v-bestPreds[i]);
+new Chart(document.getElementById('c6'),{type:'scatter',
+  data:{datasets:[
+    {data:bestPreds.map((p,i)=>({x:p,y:residuals[i]})),backgroundColor:'rgba(124,111,255,.55)',pointRadius:4},
+    {data:[{x:Math.min(...bestPreds),y:0},{x:Math.max(...bestPreds),y:0}],
+     type:'line',borderColor:'rgba(255,107,107,.8)',borderWidth:1.5,borderDash:[6,3],pointRadius:0}
+  ]},
+  options:{...CS,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Pred:$${fmt(ctx.raw.x)} Resid:$${fmt(ctx.raw.y)}`}}},
+    scales:{x:{...CS.scales.x,title:{display:true,text:'Predicted Salary',color:'#6b7280'}},
+      y:{...CS.scales.y,ticks:{color:'#6b7280',callback:v=>'$'+fmt(v)},title:{display:true,text:'Residual',color:'#6b7280'}}}}});
+
+// ─── 10. LIVE PREDICTOR ───────────────────────────────────────────────────────
+const expSlider=document.getElementById('expSlider');
+const scoreSlider=document.getElementById('scoreSlider');
+expSlider.addEventListener('input',()=>document.getElementById('expVal').textContent=expSlider.value);
+scoreSlider.addEventListener('input',()=>document.getElementById('scoreVal').textContent=scoreSlider.value);
+
+function livePredict(){
+  const exp=parseFloat(expSlider.value);
+  const score=parseInt(scoreSlider.value);
+  const edu=parseInt(document.getElementById('eduSelect').value);
+  const sal=bestCoefs[0]+bestCoefs[1]*exp+bestCoefs[2]*score+bestCoefs[3]*edu;
+  document.getElementById('resVal').textContent='$'+fmt(Math.max(0,Math.round(sal)));
+  document.getElementById('resNote').textContent=
+    `Model: β₀=${fmt(bestCoefs[0])} + ${bestCoefs[1].toFixed(0)}×${exp} + ${bestCoefs[2].toFixed(0)}×${score} + ${bestCoefs[3].toFixed(0)}×${edu}  |  R²=${r2B.toFixed(3)}`;
+  const rb=document.getElementById('resultBox');rb.classList.add('show');
+}
+</script>
+</body>
+</html>
